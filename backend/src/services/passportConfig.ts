@@ -1,15 +1,15 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy, Profile } from 'passport-google-oauth20';
-import config from '../config'; // For GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL
+import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL } from '../config'; // Use named imports
 import * as userQueries from '../db/userQueries';
 import { UserRecord } from '../db/userQueries'; // Import UserRecord type
 
 passport.use(
   new GoogleStrategy(
     {
-      clientID: config.GOOGLE_CLIENT_ID,
-      clientSecret: config.GOOGLE_CLIENT_SECRET,
-      callbackURL: config.GOOGLE_CALLBACK_URL, // This must be the full backend URL registered with Google
+      clientID: GOOGLE_CLIENT_ID,
+      clientSecret: GOOGLE_CLIENT_SECRET,
+      callbackURL: GOOGLE_CALLBACK_URL, // This must be the full backend URL registered with Google
       scope: ['profile', 'email'], // Ensure 'email' scope is requested
     },
     async (accessToken: string, refreshToken: string | undefined, profile: Profile, done: (error: any, user?: any, info?: any) => void) => {

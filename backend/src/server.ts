@@ -1,20 +1,16 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import path from 'path'; // Added for dotenv path configuration
+// import dotenv from 'dotenv'; // dotenv is now handled in config/index.ts
+// import path from 'path'; // path might still be needed if other path resolutions are done here, but not for dotenv
 
-// Load environment variables
-// Construct path to .env file based on NODE_ENV
-// Assumes .env, .env.development, .env.production are in the backend root directory
-const envFile = `.env${process.env.NODE_ENV ? `.${process.env.NODE_ENV}` : ''}`;
-// Corrected path assuming server.ts is in backend/src and .env is in backend/
-dotenv.config({ path: path.resolve(__dirname, `../.${envFile}`) });
-
+// Import configuration variables
+import { PORT, NODE_ENV, JWT_SECRET, CORS_ORIGIN } from './config';
 
 const app: Application = express();
 
 // Middleware
-app.use(cors()); // Enable CORS for all routes and origins by default
+// Configure CORS using the value from config
+app.use(cors({ origin: CORS_ORIGIN === '*' ? undefined : CORS_ORIGIN.split(',') }));
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded request bodies
 
@@ -52,12 +48,12 @@ app.use((err: HttpError, req: Request, res: Response, next: NextFunction) => {
   console.error("Unhandled error:", err.stack || err.message || err);
 
   const statusCode = err.status || err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+  const message = err.message || 'Internal ServerError';
 
   res.status(statusCode).json({
     message: message,
     // Optionally include stack in development
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    stack: NODE_ENV === 'development' ? err.stack : undefined, // Use imported NODE_ENV
   });
 });
 
@@ -75,19 +71,22 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 
-const PORT = process.env.PORT || 3001;
+// const PORT is now imported from config
 
 app.listen(PORT, () => {
   console.log(`Server is running on new foundation on port ${PORT}`);
-  console.log(`Current environment: ${process.env.NODE_ENV || 'development'}`);
-  const resolvedEnvPath = path.resolve(__dirname, `../.${envFile}`);
-  console.log(`Attempted to load .env file from: ${resolvedEnvPath}`);
+  console.log(`Current environment: ${NODE_ENV}`);
+  // The .env loading path is now logged from config/index.ts, so no need to repeat here.
 
-  if (!process.env.PORT && !process.env.CI) { // Don't warn for PORT in CI where it might be dynamically assigned
-    console.warn('Warning: PORT environment variable not set. Defaulting to 3001.');
+  // Warnings for PORT and JWT_SECRET are now handled in config/index.ts
+  // However, we can still check if they were successfully loaded if desired,
+  // but config/index.ts already provides defaults or logs critical warnings.
+  if (PORT === '3001' && !process.env.PORT && NODE_ENV !== 'test' && !process.env.CI) { // Check if default is used and PORT was not explicitly set
+    console.warn('Note: PORT is using the default value of 3001. Set PORT in your .env file if a different port is needed.');
   }
-  if (!process.env.JWT_SECRET) {
-    console.warn('CRITICAL WARNING: JWT_SECRET environment variable is not set! Application will not be secure.');
+  if (JWT_SECRET === 'YOUR_DEFAULT_JWT_SECRET_CHANGE_ME') { // Check against the default placeholder from config
+     // This warning is already in config/index.ts, but can be reiterated if crucial for server startup context
+    console.warn('CRITICAL STARTUP WARNING: JWT_SECRET is using the default placeholder value! Application is insecure.');
   }
 });
 

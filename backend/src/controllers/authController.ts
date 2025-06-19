@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
 import * as userQueries from '../db/userQueries';
 import * as jwtService from '../services/jwtService';
-import config from '../config'; // For JWT expiration, if not directly in jwtService
+import { FRONTEND_LOGIN_URL, FRONTEND_CALLBACK_SUCCESS_URL, NODE_ENV, PORT, JWT_EXPIRES_IN } from '../config'; // Named imports
 
 /**
  * Registers a new user.
@@ -52,7 +52,7 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
       username: newUser.username,
       isAdmin: newUser.is_admin,
     };
-    const token = jwtService.generateToken(tokenPayload, process.env.JWT_EXPIRES_IN || '1h');
+    const token = jwtService.generateToken(tokenPayload, JWT_EXPIRES_IN); // Use imported JWT_EXPIRES_IN
 
     // Send response (excluding password hash and sensitive OAuth details if any)
     res.status(201).json({
@@ -86,7 +86,8 @@ export const googleCallback = (req: Request, res: Response, next: NextFunction):
     // If Passport's verify callback passed an error message (e.g., email already registered locally)
     // Redirect to login page with this specific error.
     // Ensure FRONTEND_LOGIN_URL is configured and handles 'oauth_error' and 'message' query params.
-    const redirectUrl = new URL(config.FRONTEND_LOGIN_URL, config.NODE_ENV === 'production' ? `https://${req.hostname}` : `http://${req.hostname}:${config.PORT || 3000}`); // Construct base URL carefully
+    const loginUrlBase = FRONTEND_LOGIN_URL.startsWith('http') ? FRONTEND_LOGIN_URL : (NODE_ENV === 'production' ? `https://${req.hostname}${FRONTEND_LOGIN_URL}` : `http://${req.hostname}:${PORT}${FRONTEND_LOGIN_URL}`);
+    const redirectUrl = new URL(loginUrlBase);
     redirectUrl.searchParams.append('oauth_error', 'google_conflict'); // Generic error type
     redirectUrl.searchParams.append('message', authInfo.message);
     res.redirect(redirectUrl.toString());
@@ -96,9 +97,10 @@ export const googleCallback = (req: Request, res: Response, next: NextFunction):
   if (!req.user) {
     // This case should ideally be caught by Passport's failureRedirect,
     // but as a fallback or if verify callback calls done(err) or done(null, false) without a message.
-    const redirectUrl = new URL(config.FRONTEND_LOGIN_URL, config.NODE_ENV === 'production' ? `https://${req.hostname}` : `http://${req.hostname}:${config.PORT || 3000}`);
-    redirectUrl.searchParams.append('oauth_error', 'google_authentication_failed');
-    res.redirect(redirectUrl.toString());
+    const loginUrlBaseOnFailure = FRONTEND_LOGIN_URL.startsWith('http') ? FRONTEND_LOGIN_URL : (NODE_ENV === 'production' ? `https://${req.hostname}${FRONTEND_LOGIN_URL}` : `http://${req.hostname}:${PORT}${FRONTEND_LOGIN_URL}`);
+    const redirectUrlOnFailure = new URL(loginUrlBaseOnFailure);
+    redirectUrlOnFailure.searchParams.append('oauth_error', 'google_authentication_failed');
+    res.redirect(redirectUrlOnFailure.toString());
     return;
   }
 
@@ -113,7 +115,7 @@ export const googleCallback = (req: Request, res: Response, next: NextFunction):
       isAdmin: dbUser.is_admin,
       // provider: dbUser.oauth_provider // Optionally include provider in JWT if needed by frontend
     };
-    const token = jwtService.generateToken(tokenPayload, process.env.JWT_EXPIRES_IN || '1h');
+    const token = jwtService.generateToken(tokenPayload, JWT_EXPIRES_IN); // Use imported JWT_EXPIRES_IN
 
     // Prepare user info for frontend (do not send sensitive data like password_hash or google_id directly)
     const frontendUser = {
@@ -125,8 +127,9 @@ export const googleCallback = (req: Request, res: Response, next: NextFunction):
     };
 
     // Redirect to frontend with token and user info
-    // Ensure FRONTEND_URL is configured for the success callback page
-    const frontendCallbackSuccessUrl = new URL(process.env.FRONTEND_CALLBACK_SUCCESS_URL || '/auth/google/callback_success', config.NODE_ENV === 'production' ? `https://${req.hostname}` : `http://${req.hostname}:${config.PORT || 3000}`);
+    // Ensure FRONTEND_CALLBACK_SUCCESS_URL is configured
+    const successCallbackBase = FRONTEND_CALLBACK_SUCCESS_URL.startsWith('http') ? FRONTEND_CALLBACK_SUCCESS_URL : (NODE_ENV === 'production' ? `https://${req.hostname}${FRONTEND_CALLBACK_SUCCESS_URL}` : `http://${req.hostname}:${PORT}${FRONTEND_CALLBACK_SUCCESS_URL}`);
+    const frontendCallbackSuccessUrl = new URL(successCallbackBase);
     frontendCallbackSuccessUrl.searchParams.append('token', token);
     frontendCallbackSuccessUrl.searchParams.append('user', JSON.stringify(frontendUser));
 
@@ -186,7 +189,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       username: user.username,
       isAdmin: user.is_admin,
     };
-    const token = jwtService.generateToken(tokenPayload, process.env.JWT_EXPIRES_IN || '1h');
+    const token = jwtService.generateToken(tokenPayload, JWT_EXPIRES_IN); // Use imported JWT_EXPIRES_IN
 
     // Send response
     res.status(200).json({

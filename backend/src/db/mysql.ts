@@ -1,17 +1,15 @@
 import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
-import path from 'path';
+// import dotenv from 'dotenv'; // dotenv is now handled in config/index.ts
+// import path from 'path'; // path might not be needed if not resolving paths here
 
-// Load environment variables specifically for DB config if not already loaded globally
-// This ensures DB config is available even if this module is imported early
-const envFile = `.env${process.env.NODE_ENV ? `.${process.env.NODE_ENV}` : ''}`;
-dotenv.config({ path: path.resolve(__dirname, `../../.${envFile}`) }); // Adjusted path assuming mysql.ts is in backend/src/db/
+// Import database configuration variables
+import { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME } from '../config'; // Adjusted path
 
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'ai_cv_maker_db',
+  host: DB_HOST,
+  user: DB_USER,
+  password: DB_PASSWORD,
+  database: DB_NAME,
   waitForConnections: true,
   connectionLimit: 10, // Adjust as per your needs
   queueLimit: 0,

@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import config from '../config'; // Assuming config/index.ts exports JWT_SECRET and JWT_EXPIRES_IN
+import { JWT_SECRET, JWT_EXPIRES_IN } from '../config'; // Use named imports
 
 export interface JwtPayload {
   userId: number;
@@ -14,19 +14,18 @@ export interface JwtPayload {
  * @param expiresIn - Optional. Token expiration time (e.g., '1h', '7d'). Defaults to value from config.
  * @returns The generated JWT string.
  */
-export const generateToken = (payload: JwtPayload, expiresIn?: string): string => {
-  const secret = config.JWT_SECRET;
-  if (!secret || secret === 'YOUR_DEFAULT_JWT_SECRET_CHANGE_ME') {
-    console.error('CRITICAL: JWT_SECRET is not configured or is set to the default placeholder!');
-    // In a real application, you might throw an error or prevent startup if JWT_SECRET is insecure.
-    // For now, we'll proceed but this is a major security risk if not addressed.
+export const generateToken = (payload: JwtPayload, customExpiresIn?: string): string => {
+  if (!JWT_SECRET || JWT_SECRET === 'YOUR_DEFAULT_JWT_SECRET_CHANGE_ME') { // Check imported JWT_SECRET directly
+    console.error('CRITICAL: JWT_SECRET is not configured or is set to the default placeholder in config/index.ts!');
+    // Potentially throw an error in a production environment
+    // throw new Error('JWT_SECRET is not securely configured.');
   }
 
   const options: jwt.SignOptions = {
-    expiresIn: expiresIn || process.env.JWT_EXPIRES_IN || '1h', // Default to 1 hour
+    expiresIn: customExpiresIn || JWT_EXPIRES_IN, // Use imported JWT_EXPIRES_IN as default
   };
 
-  return jwt.sign(payload, secret, options);
+  return jwt.sign(payload, JWT_SECRET, options);
 };
 
 /**
@@ -36,16 +35,16 @@ export const generateToken = (payload: JwtPayload, expiresIn?: string): string =
  * @throws Error if the token is invalid or expired.
  */
 export const verifyToken = (token: string): JwtPayload => {
-  const secret = config.JWT_SECRET;
-  if (!secret) {
-    // This should ideally not happen if config is loaded correctly
+  if (!JWT_SECRET) {
+    // This should ideally not happen if config is loaded correctly via config/index.ts
+    console.error('CRITICAL: JWT_SECRET is not available for token verification.');
     throw new Error('JWT_SECRET not configured, cannot verify token.');
   }
 
   try {
-    const decoded = jwt.verify(token, secret) as JwtPayload; // Cast to our expected payload type
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload; // Cast to our expected payload type
     return decoded;
-  } catch (error) {
+  } catch (error: any) { // Catch as any to access error.name and error.message
     console.error('JWT verification error:', error.message);
     if (error.name === 'TokenExpiredError') {
       throw new Error('Token expired');
