@@ -7,13 +7,12 @@ const router = Router();
 
 // Extend AuthRequest to include NextFunction if it's to be used with RequestHandler directly
 // Or, ensure AuthRequest is compatible. For now, let's assume AuthRequest is primarily for req.user.
-// The handlers will be typed with (req: AuthRequest, res: Response, next: NextFunction)
 
-const getUserProfileHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
-    // Cast req to AuthRequest to access req.user
-    const authReq = req as AuthRequest;
+// Type the handlers directly with AuthRequest
+const getUserProfileHandler: RequestHandler = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const [users] = await pool.query<any[]>('SELECT id, username, email, created_at, updated_at, is_admin FROM users WHERE id = ?', [authReq.user?.userId]);
+        // req.user is now directly available with the correct type
+        const [users] = await pool.query<any[]>('SELECT id, username, email, created_at, updated_at, is_admin FROM users WHERE id = ?', [req.user?.userId]);
         if (users.length === 0) {
             res.status(404).json({ message: 'User not found' });
             return;
@@ -25,10 +24,9 @@ const getUserProfileHandler: RequestHandler = async (req: Request, res: Response
     }
 };
 
-const updateUserProfileHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
-    const authReq = req as AuthRequest;
+const updateUserProfileHandler: RequestHandler = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { username, email, password } = req.body;
-    const userId = authReq.user?.userId;
+    const userId = req.user?.userId; // req.user is now directly available
 
     if (!username && !email && !password) {
         res.status(400).json({ message: 'No fields to update' });

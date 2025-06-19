@@ -39,10 +39,9 @@ CREATE TABLE IF NOT EXISTS cvs (
 );
 
 -- Seed some default CV templates
-INSERT INTO cv_templates (id, name, description, preview_image_url) VALUES
+-- Using INSERT IGNORE to prevent errors if these templates already exist (e.g., when re-running the script).
+INSERT IGNORE INTO cv_templates (id, name, description, preview_image_url) VALUES
 ('classic', 'Classic', 'A traditional and elegant CV template.', '/previews/classic.png'),
 ('modern', 'Modern', 'A sleek and contemporary CV template.', '/previews/modern.png');
--- Removed ON DUPLICATE KEY UPDATE as primary key 'id' will prevent duplicates,
--- and for seeding, a clean setup is often preferred. If the table is dropped and recreated,
--- this insert will always work. For idempotent re-runs without dropping,
--- INSERT IGNORE or manual checks would be needed.
+-- The primary key 'id' on cv_templates ensures that 'classic' and 'modern' cannot be inserted if they already exist.
+-- INSERT IGNORE handles this gracefully by skipping the insertion of duplicate rows without raising an error.
