@@ -8,11 +8,14 @@ const router = Router();
 // Extend AuthRequest to include NextFunction if it's to be used with RequestHandler directly
 // Or, ensure AuthRequest is compatible. For now, let's assume AuthRequest is primarily for req.user.
 
-// Type the handlers directly with AuthRequest
-const getUserProfileHandler: RequestHandler = async (req: AuthRequest, res: Response, next: NextFunction) => {
+// Handlers should conform to express.RequestHandler
+const getUserProfileHandler: RequestHandler = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const authReq = req as AuthRequest; // Cast to AuthRequest to access user property
     try {
-        // req.user is now directly available with the correct type
-        const [users] = await pool.query<any[]>('SELECT id, username, email, created_at, updated_at, is_admin FROM users WHERE id = ?', [req.user?.userId]);
+        if (!authReq.user) { // Guard against user not being present
+            return res.status(401).json({ message: 'Not authorized, user data not available on request.' });
+        }
+        const [users] = await pool.query<any[]>('SELECT id, username, email, created_at, updated_at, is_admin FROM users WHERE id = ?', [authReq.user.userId]);
         if (users.length === 0) {
             res.status(404).json({ message: 'User not found' });
             return;
@@ -24,9 +27,14 @@ const getUserProfileHandler: RequestHandler = async (req: AuthRequest, res: Resp
     }
 };
 
-const updateUserProfileHandler: RequestHandler = async (req: AuthRequest, res: Response, next: NextFunction) => {
+const updateUserProfileHandler: RequestHandler = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const authReq = req as AuthRequest; // Cast to AuthRequest
     const { username, email, password } = req.body;
-    const userId = req.user?.userId; // req.user is now directly available
+
+    if (!authReq.user) { // Guard against user not being present
+        return res.status(401).json({ message: 'Not authorized, user data not available on request.' });
+    }
+    const userId = authReq.user.userId;
 
     if (!username && !email && !password) {
         res.status(400).json({ message: 'No fields to update' });
