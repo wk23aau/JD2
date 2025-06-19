@@ -1,52 +1,94 @@
-import express, { Request, Response, NextFunction } from 'express';
-import dotenv from 'dotenv';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import authRoutes from './routes/auth/authRoutes';
-import userRoutes from './routes/users/userRoutes';
-import cvRoutes from './routes/cvs/cvRoutes';
-import cvTemplateRoutes from './routes/cvs/cvTemplateRoutes';
-import aiRoutes from './routes/ai/aiRoutes'; // Import AI routes
-import passport from './middleware/passportConfig'; // Import Passport
+import dotenv from 'dotenv';
+import path from 'path'; // Added for dotenv path configuration
 
-dotenv.config();
+// Load environment variables
+// Construct path to .env file based on NODE_ENV
+// Assumes .env, .env.development, .env.production are in the backend root directory
+const envFile = `.env${process.env.NODE_ENV ? `.${process.env.NODE_ENV}` : ''}`;
+// Corrected path assuming server.ts is in backend/src and .env is in backend/
+dotenv.config({ path: path.resolve(__dirname, `../.${envFile}`) });
 
-const app = express();
-const port = process.env.PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Added for Passport, good practice
+const app: Application = express();
+
+// Middleware
+app.use(cors()); // Enable CORS for all routes and origins by default
+app.use(express.json()); // Parse JSON request bodies
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded request bodies
 
 // Initialize Passport
+import passport from './services/passportConfig';
 app.use(passport.initialize());
 
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/cvs', cvRoutes);
-app.use('/api/cv-templates', cvTemplateRoutes);
-app.use('/api/ai', aiRoutes); // Mount AI routes
-
-app.get('/', (req, res) => {
-  res.send('Hello from CV Builder Backend!');
+// Simple Root Route
+app.get('/', (req: Request, res: Response) => {
+  res.send('AI CV Maker API Running - New Foundation');
 });
 
+// Mount API routes
+import authRoutes from './api/authRoutes';
+import cvTemplateRoutes from './api/cvTemplateRoutes';
+import userCvRoutes from './api/userCvRoutes';
+import userRoutes from './api/userRoutes'; // Import User profile routes
+import aiRoutes from './api/aiRoutes'; // Import AI routes
+
+app.use('/api/auth', authRoutes);
+app.use('/api/cv-templates', cvTemplateRoutes);
+app.use('/api/cvs', userCvRoutes); // Mount User CV routes
+app.use('/api/users', userRoutes); // Mount User profile routes
+app.use('/api/ai', aiRoutes); // Mount AI routes
+
+
 // Basic Error Handling Middleware
-// IMPORTANT: This should be added AFTER all your routes and other middleware.
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error("Unhandled error:", err.stack || err.message || err); // Log the error stack for debugging
+// This should be one of the last middleware registered
+interface HttpError extends Error {
+  status?: number;
+  statusCode?: number; // Common alternative for status
+}
 
-  // Avoid sending error details in production for security reasons
-  // if (process.env.NODE_ENV === 'production') {
-  //   return res.status(500).json({ message: 'Internal Server Error' });
-  // }
+app.use((err: HttpError, req: Request, res: Response, next: NextFunction) => {
+  console.error("Unhandled error:", err.stack || err.message || err);
 
-  // For development, you might want to send more details
-  res.status(500).json({
-    message: err.message || 'An unexpected error occurred',
-    // stack: err.stack // Optionally include stack in dev
+  const statusCode = err.status || err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+
+  res.status(statusCode).json({
+    message: message,
+    // Optionally include stack in development
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+// 404 Not Found Handler (if no routes matched)
+// This should be placed after all your normal routes and before the generic error handler,
+// or as the very last middleware if the generic error handler calls next() for non-errors.
+// For simplicity, placing it before the generic error handler if it doesn't call next().
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Check if response has already been sent by a route handler
+  if (!res.headersSent) {
+    res.status(404).json({ message: "Not Found: The requested resource does not exist on this server." });
+  } else {
+    next(); // If headers sent, pass to next error handler if any, or Express terminates.
+  }
 });
+
+
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, () => {
+  console.log(`Server is running on new foundation on port ${PORT}`);
+  console.log(`Current environment: ${process.env.NODE_ENV || 'development'}`);
+  const resolvedEnvPath = path.resolve(__dirname, `../.${envFile}`);
+  console.log(`Attempted to load .env file from: ${resolvedEnvPath}`);
+
+  if (!process.env.PORT && !process.env.CI) { // Don't warn for PORT in CI where it might be dynamically assigned
+    console.warn('Warning: PORT environment variable not set. Defaulting to 3001.');
+  }
+  if (!process.env.JWT_SECRET) {
+    console.warn('CRITICAL WARNING: JWT_SECRET environment variable is not set! Application will not be secure.');
+  }
+});
+
+export default app; // Export app for potential testing or other uses

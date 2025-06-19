@@ -1,0 +1,3 @@
+# This file is to ensure the directory is tracked by Git.
+# Custom TypeScript type definitions and interfaces for the backend will go here.
+# E.g., AuthRequest, UserProfile, specific data structures.

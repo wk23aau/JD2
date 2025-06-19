@@ -1,0 +1,3 @@
+# This file is to ensure the directory is tracked by Git.
+# Utility functions, helpers, or common libraries used across the backend will go here.
+# E.g., password hashing utilities, validation helpers, date formatters.

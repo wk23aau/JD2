@@ -1,0 +1,2 @@
+# This file is to ensure the directory is tracked by Git.
+# Custom Express middleware (e.g., authentication, authorization, logging, error handling) will go here.
