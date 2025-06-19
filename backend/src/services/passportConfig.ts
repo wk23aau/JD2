@@ -66,21 +66,29 @@ passport.use(
             return done(new Error('Failed to retrieve newly created OAuth user.'), false);
           }
           return done(null, newUser);
-        } catch (createUserError) {
-            // Check if the error is due to duplicate email/username from a *different* OAuth user
-            // or some other DB issue.
-            if (createUserError.message.includes('User with this email or username already exists')) {
-                 // This could happen if the email from Google is already tied to another Google account
-                 // or another OAuth provider, or username is taken.
-                console.warn(`Attempted to create user with email ${email} or username ${username} via Google, but it already exists.`);
-                return done(null, false, { message: 'This email or username is already associated with an account. Try logging in or use a different account.' });
+        } catch (createUserError: unknown) { // Catch as unknown
+            if (createUserError instanceof Error) {
+                // Now it's safe to access createUserError.message
+                // The userQueries.createUser throws 'User with this email or username already exists.' for ER_DUP_ENTRY
+                if (createUserError.message.includes('User with this email or username already exists')) {
+                    console.warn(`OAuth user creation conflict for email ${email} or username ${username}: ${createUserError.message}`);
+                    return done(null, false, { message: 'This email or username is already associated with another account. Please try logging in or use a different Google account.' });
+                }
+                // For other Error instances from createUser or other unexpected errors
+                console.error('Error during createUser in GoogleStrategy:', createUserError);
+                return done(createUserError, false);
             }
-            return done(createUserError, false);
+            // Handle cases where createUserError is not an Error object
+            console.error('Unknown error during createUser in GoogleStrategy:', createUserError);
+            return done(new Error('An unexpected error occurred during user creation.'), false);
         }
 
-      } catch (error) {
+      } catch (error: unknown) { // Catch as unknown for the outer try-catch
         console.error('Error in GoogleStrategy verify callback:', error);
-        return done(error, false);
+        if (error instanceof Error) {
+            return done(error, false);
+        }
+        return done(new Error('An unknown error occurred during Google authentication.'), false);
       }
     }
   )

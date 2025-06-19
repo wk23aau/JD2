@@ -18,14 +18,14 @@ export interface UserRecord extends RowDataPacket {
 interface CreateUserParams {
   username: string;
   email: string;
-  passwordHash: string;
+  passwordHash: string | null; // Allow null for OAuth-only users
   googleId?: string | null;
   oauthProvider?: string | null;
 }
 
 /**
  * Creates a new user in the database.
- * @param userData - Object containing username, email, and passwordHash.
+ * @param userData - Object containing username, email, and passwordHash (which can be null).
  * @returns The ID of the newly created user.
  * @throws Error if user creation fails.
  */
