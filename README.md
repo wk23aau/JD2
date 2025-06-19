@@ -218,6 +218,59 @@ The API routes are prefixed with `/api` as defined in `server.ts`.
 
 This structure represents a typical Node.js Express application with clear separation of concerns for routing, database interaction, configuration, and authentication.
 
+### 6.7. Google OAuth Configuration (Backend)
+
+To enable "Sign in with Google" functionality, the backend needs to be configured with OAuth 2.0 credentials from Google Cloud Platform.
+
+**A. Database Schema for OAuth:**
+
+The `users` table in the database (`backend/src/database_schema.sql`) has been updated to support OAuth:
+- `google_id VARCHAR(255) UNIQUE DEFAULT NULL`: Stores the user's unique Google ID.
+- `oauth_provider VARCHAR(50) DEFAULT NULL`: Stores the name of the OAuth provider (e.g., 'google').
+- `password_hash VARCHAR(255)`: This field can now be `NULL` if the user registered via an OAuth provider.
+
+**B. Setting up Google Cloud Platform Credentials:**
+
+1.  **Create/Select a Project:**
+    *   Go to the [Google Cloud Console](https://console.cloud.google.com/).
+    *   Create a new project or select an existing one.
+
+2.  **Enable APIs:**
+    *   Navigate to "APIs & Services" > "Library".
+    *   Search for and enable the **"Google People API"**. This API is used to fetch basic profile information (like email and name) after successful authentication. (Note: If you previously used Google+ API, it's deprecated; People API is the current standard).
+
+3.  **Create OAuth 2.0 Credentials:**
+    *   Go to "APIs & Services" > "Credentials".
+    *   Click "+ CREATE CREDENTIALS" and select "OAuth client ID".
+    *   **Application type:** Choose "Web application".
+    *   **Name:** Give your OAuth client a descriptive name (e.g., "AI CV Maker Auth").
+    *   **Authorized JavaScript origins:** (Primarily for frontend interaction if Google SDK is used directly, but good practice to set)
+        *   Add URIs for your frontend application.
+        *   Example (local development): `http://localhost:3000`
+        *   Example (production): `https://yourfrontenddomain.com`
+    *   **Authorized redirect URIs:** This is crucial for the backend. These URIs are where Google will redirect the user after they have authenticated with Google.
+        *   Add the full URI to your backend's Google OAuth callback endpoint. This *MUST* match the `GOOGLE_CALLBACK_URL` environment variable used by your backend.
+        *   Example (local development): `http://localhost:3001/api/auth/google/callback`
+        *   Example (production): `https://yourbackenddomain.com/api/auth/google/callback`
+    *   Click "Create".
+
+4.  **Copy Client ID and Client Secret:**
+    *   After creation, a dialog will show your "Client ID" and "Client Secret".
+    *   **Copy these values immediately and store them securely.** You will need them for your backend environment variables.
+
+**C. Backend Application Configuration:**
+
+The backend requires the following environment variables to be set for Google OAuth to function:
+
+-   `GOOGLE_CLIENT_ID`: The Client ID obtained from Google Cloud Console.
+-   `GOOGLE_CLIENT_SECRET`: The Client Secret obtained from Google Cloud Console.
+-   `GOOGLE_CALLBACK_URL`: The full callback URL registered in Google Cloud Console (e.g., `http://localhost:3001/api/auth/google/callback`). This tells your backend where Google will send the authentication response.
+-   `FRONTEND_LOGIN_URL`: (Optional but recommended for better UX) The URL to your frontend's login page (e.g., `http://localhost:3000/login`). The backend uses this to redirect users with an error message if Google authentication fails during the callback phase.
+
+Refer to the `backend/.env.example` file for a template of how to set these variables. Ensure these variables are correctly set in your deployment environment or your local `.env` file (for development).
+
+With these steps completed, your backend will be ready to handle Google OAuth 2.0 authentication requests.
+
 ## 4. Data Flow
 # Data Flow Documentation
 

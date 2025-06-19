@@ -47,6 +47,12 @@ Now, you'll build the Docker "image" for the frontend. Think of an image as a bl
         ```
         If you don't provide it, the frontend might be built without AI capabilities or with limited functionality, depending on how it's configured.
 
+    *   **Note on API Base URL (e.g., `REACT_APP_API_BASE_URL` or `VITE_API_BASE_URL`):**
+        *   The frontend application is configured to make API calls to relative paths like `/api/auth/login`.
+        *   In this Docker setup, Nginx (running in the same container as the frontend) serves the frontend files and is also configured to proxy any requests starting with `/api` to the backend server.
+        *   This means that you typically **do not need to set an API base URL environment variable** for the frontend when using this Docker setup, as relative paths will work correctly.
+        *   If you were deploying the frontend and backend to different domains or ports *without* such a proxy, you would need to configure an environment variable (e.g., `VITE_API_BASE_URL`, and update frontend code to use `import.meta.env.VITE_API_BASE_URL`) and pass it during the build process. However, for the provided Docker setup, this is handled by Nginx.
+
 ### 3. Run the Frontend Docker Container
 
 Once the image is built, you can run it as a "container". A container is a running instance of your image.

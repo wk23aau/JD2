@@ -19,6 +19,7 @@ export interface AuthContextType {
   signup: (signupData: { username; email; password }) => Promise<void>;
   logout: () => void;
   initializeAuth: () => void; // To check localStorage on app load
+  handleGoogleLogin: (token: string, userData: User) => void; // Added for Google OAuth
 }
 
 // 3. Create AuthContext
@@ -130,8 +131,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Helper for error state if we were to manage it globally in context
   // For now, errors are thrown and handled by components
-  const [_, setError] = useState<string | null>(null);
+  const [_, setError] = useState<string | null>(null); // setError is defined but not used in this snippet, assuming it's for broader use
 
+  const handleGoogleLogin = (newToken: string, newUserInfo: User) => {
+    setIsLoading(true);
+    try {
+      setToken(newToken);
+      setUser(newUserInfo);
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('userInfo', JSON.stringify(newUserInfo));
+      console.log("AuthContext: User logged in with Google");
+    } catch (error) {
+      console.error("AuthContext: Error during Google login handling", error);
+      // Clean up on error
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('userInfo');
+      // Optionally, re-throw or set an error state
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const contextValue: AuthContextType = {
     token,
@@ -143,6 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signup,
     logout,
     initializeAuth, // Though called internally, exposing it might be useful for specific scenarios
+    handleGoogleLogin, // Added to context
   };
 
   return (

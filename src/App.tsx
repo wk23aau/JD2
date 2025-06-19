@@ -15,6 +15,7 @@ const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const GoogleAuthCallbackPage = lazy(() => import('./pages/GoogleAuthCallbackPage')); // Added Google Auth Callback
 
 // Auth context/state would typically be managed here or in a dedicated provider
 // For now, just basic routing structure.
@@ -73,6 +74,11 @@ const App: React.FC = () => {
         <Route path="/signup" element={
           <Suspense fallback={<div className="flex items-center justify-center h-screen"><LoadingSpinner message="Loading..."/></div>}>
             <SignupPage />
+          </Suspense>
+        } />
+        <Route path="/auth/google/callback_success" element={
+          <Suspense fallback={<div className="flex items-center justify-center h-screen"><LoadingSpinner message="Processing..."/></div>}>
+            <GoogleAuthCallbackPage />
           </Suspense>
         } />
       </Routes>

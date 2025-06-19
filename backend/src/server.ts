@@ -6,6 +6,7 @@ import userRoutes from './routes/users/userRoutes';
 import cvRoutes from './routes/cvs/cvRoutes';
 import cvTemplateRoutes from './routes/cvs/cvTemplateRoutes';
 import aiRoutes from './routes/ai/aiRoutes'; // Import AI routes
+import passport from './middleware/passportConfig'; // Import Passport
 
 dotenv.config();
 
@@ -14,6 +15,10 @@ const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Added for Passport, good practice
+
+// Initialize Passport
+app.use(passport.initialize());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
